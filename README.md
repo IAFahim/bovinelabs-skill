@@ -6,6 +6,7 @@
 
 ## Table of Contents
 
+0. [Code Comment Policy — The Absolute Rule](#0-code-comment-policy--the-absolute-rule)
 1. [Assembly Definition Architecture](#1-assembly-definition-architecture)
 2. [World & Bootstrap Architecture](#2-world--bootstrap-architecture)
 3. [Core Utilities: Logging, Math, and Assertions](#3-core-utilities-logging-math-and-assertions)
@@ -28,6 +29,32 @@
 20. [NetCode Relevancy (Interest Management)](#20-netcode-relevancy-interest-management)
 21. [Deterministic Pause System](#21-deterministic-pause-system)
 
+
+## 0. Code Comment Policy — The Absolute Rule
+
+> **RULE: Production code contains zero comments. No exceptions.**
+
+Self-documenting names, clear structure, and well-named systems replace every comment. If you feel the urge to write a comment, rename the variable, extract the method, or redesign the structure until the comment is unnecessary.
+
+**Why:** Comments lie. Code changes; comments don't. A comment that was accurate six months ago is a trap today. Naming things correctly is permanent documentation.
+
+```csharp
+// ❌ PRODUCTION CODE VIOLATION — never ship this
+private void Execute(ref Health h, in Regen r) // Apply regen to health
+{
+    h.Current = math.min(h.Current + r.Rate * dt, h.Max); // Clamp to max
+}
+
+// ✅ CORRECT — the code is the documentation
+private void Execute(ref Health health, in Regeneration regeneration)
+{
+    health.Current = math.min(health.Current + regeneration.Rate * deltaTime, health.Max);
+}
+```
+
+> **Note on this document:** All code examples throughout this README contain inline comments and annotations **for teaching purposes only**. These explain *why* a pattern is used so you can understand it deeply. This explanatory style must never appear in your actual `.cs` files. Your codebase is not a tutorial.
+
+---
 
 ## 1. Assembly Definition Architecture
 
@@ -219,8 +246,8 @@ Components describe WHAT an entity IS or HAS, not what it DOES.
 
 - **Systems:** `[Verb][Subject]System` (e.g., `ApplyDamageSystem`, `ProcessInputSystem`).
 - **Jobs:** `[Verb][Subject]Job`.
-    - If using `IJobChunk`, suffix with `ChunkJob`.
-    - If using `IJobEntity`, just suffix `Job`.
+  - If using `IJobChunk`, suffix with `ChunkJob`.
+  - If using `IJobEntity`, just suffix `Job`.
 
 ### 4.4 File Layout Standard
 
@@ -1154,12 +1181,7 @@ public partial struct PortalSystem : ISystem
 
 ### 19.1 Setup & Authoring
 
-Add the `StatefulCollisionEventAuthoring` or `StatefulTriggerEventAuthoring` MonoBehaviour to your colliders.
-
-```csharp
-// In the editor, check "Event Details" if you need contact points and impulses.
-// If you only need to know "Did I hit a wall?", leave it unchecked to save memory.
-```
+Add the `StatefulCollisionEventAuthoring` or `StatefulTriggerEventAuthoring` MonoBehaviour to your colliders. In the inspector, enable **Event Details** if you need contact points and impulses. Leave it unchecked if you only need to know whether a collision occurred — this saves memory per entity.
 
 ### 19.2 Processing Stateful Events
 
@@ -1277,14 +1299,18 @@ public partial struct PauseMenuRenderSystem : ISystem, IUpdateWhilePaused
 }
 ```
 
-# 🎮 Unity ECS / BovineLabs Elite Coding Standards (The Testing Bible)
-### Absolute Determinism, Zero-Leak Validation, and Sub-Millisecond Benchmarking
+---
 
-> **Audience:** Every developer committing code to this project.  
+---
+
+# Part 2 — The Testing Bible
+## Absolute Determinism, Zero-Leak Validation, and Sub-Millisecond Benchmarking
+
+> **Audience:** Every developer committing code to this project.
 > **Philosophy:** Untested ECS code is broken code. In a multithreaded, Burst-compiled, unmanaged memory environment, the compiler will not save you from race conditions, memory leaks, or chunk fragmentation. **Testing is not an afterthought; it is the mathematical proof that your systems function.**
 
 
-## 📚 Table of Contents
+## Part 2 — Table of Contents
 
 1. [The Philosophy of DOTS Testing](#1-the-philosophy-of-dots-testing)
 2. [Assembly & Fixture Architecture](#2-assembly--fixture-architecture)
@@ -1425,8 +1451,10 @@ public static class CombatMath
 // The Test
 public class CombatMathTests
 {
-    // TestCase allows us to test hundreds of permutations in milliseconds[TestCase(100f, 0f, ExpectedResult = 100f)][TestCase(100f, 100f, ExpectedResult = 50f)][TestCase(100f, 300f, ExpectedResult = 25f)]
-    [TestCase(5f, 1000f, ExpectedResult = 1f)] // Tests the math.max(1f) floor
+    [TestCase(100f, 0f, ExpectedResult = 100f)]
+    [TestCase(100f, 100f, ExpectedResult = 50f)]
+    [TestCase(100f, 300f, ExpectedResult = 25f)]
+    [TestCase(5f, 1000f, ExpectedResult = 1f)]
     public float CalculateMitigatedDamage_ReturnsCorrectValues(float dmg, float armor)
     {
         return CombatMath.CalculateMitigatedDamage(dmg, armor);
@@ -1549,7 +1577,8 @@ public void DeathSystem_WhenHealthZero_DestroysEntity()
 
 `BovineLabs.Core` introduces `DynamicHashMap`, which lives inside an Entity's `DynamicBuffer`. Testing this requires setting up the buffer and initializing the helper.
 
-```csharp[Test]
+```csharp
+[Test]
 [TestLeakDetection]
 public void InventorySystem_AddsItemToDynamicHashMap()
 {
@@ -1606,7 +1635,8 @@ public void CombatFacet_TryGet_ResolvesCorrectly()
 ### 8.2 Testing IEnableableComponent States
 Do not use `HasComponent<T>` to check enableable state. Use `IsComponentEnabled<T>`.
 
-```csharp[Test]
+```csharp
+[Test]
 [TestLeakDetection]
 public void StunSystem_EnablesStunnedComponent()
 {
